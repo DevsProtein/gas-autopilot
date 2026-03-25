@@ -19,16 +19,66 @@ Autonomous GAS development via clasp + gws CLI.
 
 ## Setup Check (required — every session)
 
-Verify at the start of each session. **If not installed, refer to setup-en.md (or setup-jp.md) and guide the user through installation.**
+### Step 1: Verify CLI tools
 
 ```bash
 clasp --version    # Not installed → npm install -g @google/clasp
 gws --version      # Not installed → see setup guide
 ```
 
-If already set up:
-1. Does `clasp push` succeed? (auth check)
-2. Does `./gas-run.sh` exist with placeholders replaced?
+If not installed, refer to setup-en.md (or setup-jp.md) and guide the user through installation.
+
+### Step 2: Check project config (`.gas-autopilot.json`)
+
+Look for `.gas-autopilot.json` in the project directory (same level as `.clasp.json`).
+
+**If found:** Read it and use the values (`scriptId`, `webappUrl`, `webappDeployId`, `spreadsheetId`) for the rest of the session. Proceed to the development workflow.
+
+**If NOT found:** Run the interactive setup below. **Do NOT proceed to the development workflow until this is complete.**
+
+#### Interactive setup flow:
+
+**a. Get Script ID**
+
+Check if `.clasp.json` exists in the project directory.
+
+- **`.clasp.json` exists** → Read `scriptId` from it automatically.
+- **`.clasp.json` does NOT exist** → Ask the user:
+  - "Do you have an existing GAS project, or do you want to create a new one?"
+  - **Existing project** → Guide: "Open GAS editor → copy the script ID from the URL (`https://script.google.com/home/projects/<SCRIPT_ID>/edit`) → provide it here." Then run `clasp clone <scriptId>`.
+  - **New project** → Guide: "Create a new Google Spreadsheet → Extensions → Apps Script → copy the script ID from the URL → provide it here." Then run `clasp clone <scriptId>`.
+
+**b. Get Web App URL**
+
+Guide the user through the Web App deploy process:
+
+1. "Add the doGet handler from `templates/doGet.js` to your GAS project, then run `clasp push --force`."
+2. "Open GAS editor → Deploy → New deployment → Web app → Execute as: Me → Access: Only myself → Deploy."
+3. "Paste the Web App URL shown after deployment."
+
+Extract `webappDeployId` from the URL automatically (the string between `/s/` and `/exec`).
+
+**c. Get Spreadsheet URL**
+
+Ask the user: "What is the URL of the target spreadsheet?"
+
+Extract `spreadsheetId` from the URL automatically (the string after `/d/` and before the next `/`).
+
+**d. Create config file**
+
+Write `.gas-autopilot.json` to the project directory with all collected values:
+
+```json
+{
+  "scriptId": "<extracted>",
+  "webappUrl": "<user provided>",
+  "webappDeployId": "<extracted from URL>",
+  "spreadsheetUrl": "<user provided>",
+  "spreadsheetId": "<extracted from URL>"
+}
+```
+
+Also recommend adding `.gas-autopilot.json` to `.gitignore`.
 
 ## Principles
 
@@ -36,17 +86,19 @@ If already set up:
 
 Test data injection, cell updates, data verification — **all spreadsheet operations go through gws**. No manual GAS editor operations needed.
 
+When running gws commands, use the `spreadsheetId` from `.gas-autopilot.json`:
+
 ```bash
 # Read
-gws sheets spreadsheets values get --params "{\"spreadsheetId\":\"ID\", \"range\":\"Sheet1!A1:E10\"}" --format csv
+gws sheets spreadsheets values get --params "{\"spreadsheetId\":\"<spreadsheetId>\", \"range\":\"Sheet1!A1:E10\"}" --format csv
 
 # Write
 gws sheets spreadsheets values update \
-  --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1\",\"valueInputOption\":\"USER_ENTERED\"}" \
+  --params "{\"spreadsheetId\":\"<spreadsheetId>\",\"range\":\"Sheet1!A1\",\"valueInputOption\":\"USER_ENTERED\"}" \
   --json "{\"values\":[[\"value\"]]}"
 
 # Clear
-gws sheets spreadsheets values clear --params "{\"spreadsheetId\":\"ID\", \"range\":\"Sheet1!A2:Z\"}"
+gws sheets spreadsheets values clear --params "{\"spreadsheetId\":\"<spreadsheetId>\", \"range\":\"Sheet1!A2:Z\"}"
 ```
 
 ### Never skip test execution
@@ -116,6 +168,8 @@ Test flow — verify in a way that mirrors real user operations:
 5. gws: restore test data (cleanup)
 6. Re-run GAS if needed to restore snapshots
 ```
+
+**On deploy failure:** Do NOT silently continue. Stop immediately, report the error to the user, and ask how to proceed. Common causes: expired OAuth tokens, incorrect Web App URL, missing scopes.
 
 #### 3-3. Auto-Fix Loop
 

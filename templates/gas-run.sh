@@ -6,18 +6,33 @@
 #   ./gas-run.sh deploy                — push + create version + update Web App deploy
 #   ./gas-run.sh deploy <functionName> — deploy then run a function
 #
-# Setup:
-#   1. Replace the variables below with your project values
-#   2. chmod +x gas-run.sh
-#   3. Run gas-auth.py for OAuth authentication
+# Config is read from .gas-autopilot.json in the same directory.
+# If the file doesn't exist, run the gas-autopilot skill setup first.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-WEBAPP_URL="<Web App URL>"           # From GAS editor deploy screen
-WEBAPP_DEPLOY_ID="<Deploy ID>"       # String between /s/ and /exec in Web App URL
-SCRIPT_ID="<Script ID>"              # scriptId from .clasp.json
+CONFIG_FILE="$SCRIPT_DIR/.gas-autopilot.json"
 CLASPRC="$HOME/.clasprc.json"
+
+# --- Load config from .gas-autopilot.json ---
+WEBAPP_URL="${WEBAPP_URL:-}"
+WEBAPP_DEPLOY_ID="${WEBAPP_DEPLOY_ID:-}"
+SCRIPT_ID="${SCRIPT_ID:-}"
+
+if [ -f "$CONFIG_FILE" ]; then
+  WEBAPP_URL="${WEBAPP_URL:-$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('webappUrl',''))" 2>/dev/null)}"
+  WEBAPP_DEPLOY_ID="${WEBAPP_DEPLOY_ID:-$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('webappDeployId',''))" 2>/dev/null)}"
+  SCRIPT_ID="${SCRIPT_ID:-$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('scriptId',''))" 2>/dev/null)}"
+fi
+
+if [ -z "$WEBAPP_URL" ] || [ -z "$WEBAPP_DEPLOY_ID" ] || [ -z "$SCRIPT_ID" ]; then
+  echo "Error: Missing configuration."
+  echo ""
+  echo "Expected .gas-autopilot.json at: $CONFIG_FILE"
+  echo "Run the gas-autopilot skill setup: type /gas-autopilot in Claude Code."
+  exit 1
+fi
 
 # --- Helper: Get access token ---
 get_token() {

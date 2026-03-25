@@ -196,19 +196,27 @@ Note the **Web App URL** (the deployment ID is the string between `/s/` and `/ex
 
 **Note:** A scope authorization dialog will appear on first deploy. Allow it.
 
-## Step 10: Place gas-run.sh
+## Step 10: Place gas-run.sh and create config
 
-Copy [templates/gas-run.sh](templates/gas-run.sh) to the project directory and replace the placeholders:
-
-| Placeholder | Source |
-|-------------|--------|
-| `<Web App URL>` | URL shown during Step 9 deploy |
-| `<デプロイID>` | String between `/s/` and `/exec` in the Web App URL |
-| `<スクリプトID>` | `scriptId` in `.clasp.json` |
+Copy [templates/gas-run.sh](templates/gas-run.sh) to the project directory:
 
 ```bash
 chmod +x gas-run.sh
 ```
+
+gas-run.sh reads its configuration from `.gas-autopilot.json` in the same directory. This file is **automatically created by Claude** when you first invoke the `/gas-autopilot` skill. You can also create it manually:
+
+```json
+{
+  "scriptId": "<from .clasp.json>",
+  "webappUrl": "<Web App URL from Step 9>",
+  "webappDeployId": "<string between /s/ and /exec in the URL>",
+  "spreadsheetUrl": "<your spreadsheet URL>",
+  "spreadsheetId": "<extracted from spreadsheet URL>"
+}
+```
+
+Consider adding `.gas-autopilot.json` to `.gitignore`.
 
 ## Step 11: OAuth authentication (extended scopes)
 

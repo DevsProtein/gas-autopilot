@@ -196,19 +196,27 @@ clasp push --force
 
 **注意:** 初回デプロイ時にスコープの認可ダイアログが表示される。許可すること。
 
-## 手順 10: gas-run.sh の配置
+## 手順 10: gas-run.shの配置と設定ファイル
 
-[templates/gas-run.sh](templates/gas-run.sh) をプロジェクトディレクトリにコピーし、以下のプレースホルダを実際の値に置き換える:
-
-| プレースホルダ | 値の取得元 |
-|--------------|-----------|
-| `<Web App URL>` | 手順 9 でデプロイ時に表示される URL |
-| `<デプロイID>` | Web App URL の `/s/` と `/exec` の間の文字列 |
-| `<スクリプトID>` | `.clasp.json` の `scriptId` |
+[templates/gas-run.sh](templates/gas-run.sh)をプロジェクトディレクトリにコピーする:
 
 ```bash
 chmod +x gas-run.sh
 ```
+
+gas-run.shは同ディレクトリの`.gas-autopilot.json`から設定を読み込む。このファイルは`/gas-autopilot`スキルを初回起動したときに**Claudeが自動作成**する。手動で作成する場合:
+
+```json
+{
+  "scriptId": "<.clasp.jsonから取得>",
+  "webappUrl": "<手順9のWeb App URL>",
+  "webappDeployId": "<URLの/s/と/execの間の文字列>",
+  "spreadsheetUrl": "<スプレッドシートのURL>",
+  "spreadsheetId": "<URLから抽出>"
+}
+```
+
+`.gas-autopilot.json`は`.gitignore`への追加を推奨。
 
 ## 手順 11: OAuth 認証（拡張スコープ）
 
