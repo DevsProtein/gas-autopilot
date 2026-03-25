@@ -238,7 +238,7 @@ python3 gas-auth.py <手順3でダウンロードした client_secret_*.json の
 
 ## 手順 13: スキルの有効化確認
 
-Claude Codeのセッションを新しく開始し、`/gas-autopilot`がスキル一覧に表示されることを確認する。表示されればセットアップ完了。
+Claude Codeのセッションを新しく開始し、`/gas-autopilot`と入力してスキルが呼び出せることを確認する。呼び出せればセットアップ完了。
 
 ---
 

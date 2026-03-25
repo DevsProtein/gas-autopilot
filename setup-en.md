@@ -238,7 +238,7 @@ If `{"ok": true, "function": "testConfig", "result": null}` is returned, the CLI
 
 ## Step 13: Verify skill activation
 
-Start a new Claude Code session and confirm `/gas-autopilot` appears in the skill list. If it does, setup is complete.
+Start a new Claude Code session and type `/gas-autopilot`. If the skill activates, setup is complete.
 
 ---
 
