@@ -2,14 +2,23 @@
 
 ## What this setup enables
 
-Connect the following CLI tools to **develop, execute, and test GAS entirely from the terminal**.
+Install the **gas-autopilot** skill for Claude Code — an autonomous GAS development workflow that handles code → deploy → test → fix in a self-driving loop.
+
+This setup connects the following CLI tools so Claude Code can **develop, execute, and test GAS entirely from the terminal**.
 
 | Tool | Role |
 |------|------|
+| **gas-autopilot** | Claude Code skill that orchestrates the entire workflow |
 | **clasp** | Push / pull / version management of GAS code |
 | **gws** | Read/write spreadsheets (test data injection & result verification) |
 | **gas-run.sh** | Automates push → Web App deploy update → function execution in one command |
 | **gas-auth.py** | Extended OAuth scope authentication for clasp / gas-run.sh |
+
+---
+
+## Step 0: Install the skill
+
+Place this skill folder inside your Claude Code skills directory.
 
 ---
 
@@ -225,7 +234,11 @@ A browser will open — authorize. On success, `~/.clasprc.json` is updated.
 ./gas-run.sh deploy testConfig
 ```
 
-If `{"ok": true, "function": "testConfig", "result": null}` is returned, setup is complete.
+If `{"ok": true, "function": "testConfig", "result": null}` is returned, the CLI tools are ready.
+
+## Step 13: Verify skill activation
+
+Start a new Claude Code session and confirm `/gas-autopilot` appears in the skill list. If it does, setup is complete.
 
 ---
 

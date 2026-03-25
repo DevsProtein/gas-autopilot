@@ -1,19 +1,28 @@
-# GAS Developer セットアップガイド
+# GAS Autopilotセットアップガイド
 
 ## このセットアップで何ができるようになるか
 
-以下の CLI ツールを連携させ、**GAS の開発・実行・検証をターミナルから完結**できる環境を構築する。
+Claude Codeに**gas-autopilot**スキルを導入し、GAS開発を自律的に行えるようにする。コード実装→デプロイ→テスト→修正のループをClaudeが自動で回してくれる。
+
+以下のCLIツールを連携させ、**GASの開発・実行・検証をターミナルから完結**できる環境を構築する。
 
 | ツール | 役割 |
 |--------|------|
-| **clasp** | GAS コードの push / pull / バージョン管理 |
+| **gas-autopilot** | ワークフロー全体を統括するClaude Codeスキル |
+| **clasp** | GASコードのpush / pull / バージョン管理 |
 | **gws** | スプレッドシートの読み書き（テストデータ投入・結果検証） |
-| **gas-run.sh** | push → Web App デプロイ更新 → 関数実行を1コマンドで自動化 |
-| **gas-auth.py** | clasp / gas-run.sh に必要な拡張 OAuth スコープの認証 |
+| **gas-run.sh** | push → Web Appデプロイ更新 → 関数実行を1コマンドで自動化 |
+| **gas-auth.py** | clasp / gas-run.shに必要な拡張OAuthスコープの認証 |
 
 ---
 
-## 手順 1: clasp のインストール 
+## 手順 0: スキルのインストール
+
+このスキルフォルダをClaude Codeのskillsディレクトリに配置する。
+
+---
+
+## 手順 1: claspのインストール 
 
 確認:
 
@@ -225,7 +234,11 @@ python3 gas-auth.py <手順3でダウンロードした client_secret_*.json の
 ./gas-run.sh deploy testConfig
 ```
 
-`{"ok": true, "function": "testConfig", "result": null}` が返ればセットアップ完了。
+`{"ok": true, "function": "testConfig", "result": null}` が返ればCLIツールの準備は完了。
+
+## 手順 13: スキルの有効化確認
+
+Claude Codeのセッションを新しく開始し、`/gas-autopilot`がスキル一覧に表示されることを確認する。表示されればセットアップ完了。
 
 ---
 
