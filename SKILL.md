@@ -13,6 +13,8 @@ Autonomous GAS development via clasp + gws CLI.
 |------|-------------|
 | [setup-en.md](setup-en.md) | Setup guide (English) |
 | [setup-jp.md](setup-jp.md) | Setup guide (Japanese) |
+| [gws-reference.md](gws-reference.md) | gws command reference & tips |
+| [gws-formatting.md](gws-formatting.md) | Sheet formatting & management |
 | [templates/doGet.js](templates/doGet.js) | Web App handler template |
 | [templates/gas-run.sh](templates/gas-run.sh) | CLI wrapper (automates push + deploy + execution) |
 | [templates/gas-auth.py](templates/gas-auth.py) | OAuth authentication helper |
@@ -100,7 +102,9 @@ Also recommend adding `.gas-autopilot.json` to `.gitignore`.
 
 Test data injection, cell updates, data verification — **all spreadsheet operations go through gws**. No manual GAS editor operations needed.
 
-When running gws commands, use the `spreadsheetId` from `.gas-autopilot.json`:
+When running gws commands, use the `spreadsheetId` from `.gas-autopilot.json`.
+
+**構文ルール:** `--params` はシングルクォート JSON を受け付けない。ダブルクォートをエスケープして渡す。
 
 ```bash
 # Read
@@ -114,6 +118,13 @@ gws sheets spreadsheets values update \
 # Clear
 gws sheets spreadsheets values clear --params "{\"spreadsheetId\":\"<spreadsheetId>\", \"range\":\"Sheet1!A2:Z\"}"
 ```
+
+**書式操作の重要ルール:**
+- 既存シートの表をコピーする際は、**必ず書式（配色・罫線・数値書式）もコピーする**
+- 新規に表を作成する場合、**ヘッダー行にスタイルを適用する**
+- テーブルの構造変更後、**旧範囲にはみ出た書式の残骸を必ずクリアする**
+
+詳細: [gws-reference.md](gws-reference.md)（コマンド詳細・Tips） / [gws-formatting.md](gws-formatting.md)（書式操作・シート管理）
 
 ### Never skip test execution
 
