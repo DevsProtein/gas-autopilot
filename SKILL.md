@@ -48,23 +48,37 @@ Check if `.clasp.json` exists in the project directory.
   - **Existing project** → Guide: "Open GAS editor → copy the script ID from the URL (`https://script.google.com/home/projects/<SCRIPT_ID>/edit`) → provide it here." Then run `clasp clone <scriptId>`.
   - **New project** → Guide: "Create a new Google Spreadsheet → Extensions → Apps Script → copy the script ID from the URL → provide it here." Then run `clasp clone <scriptId>`.
 
-**b. Get Web App URL**
+**b. Set up the project**
 
-Guide the user through the Web App deploy process:
+Perform the following automatically or guide the user:
 
-1. "Add the doGet handler from `templates/doGet.js` to your GAS project, then run `clasp push --force`."
-2. "Open GAS editor → Deploy → New deployment → Web app → Execute as: Me → Access: Only myself → Deploy."
-3. "Paste the Web App URL shown after deployment."
+1. Add `oauthScopes` to `appsscript.json` if not present:
+   ```json
+   "oauthScopes": [
+     "https://www.googleapis.com/auth/spreadsheets",
+     "https://www.googleapis.com/auth/script.external_request"
+   ]
+   ```
+2. Add the doGet handler from `templates/doGet.js` to the project if not present.
+3. Run `clasp push --force`.
+4. Copy `templates/gas-run.sh` to the project directory and run `chmod +x gas-run.sh`.
+
+**d. Get Web App URL**
+
+Guide the user through the Web App deploy process (first time only — must be done from GAS editor):
+
+1. "Open GAS editor → Deploy → New deployment → Web app → Execute as: Me → Access: Only myself → Deploy."
+2. "Paste the Web App URL shown after deployment."
 
 Extract `webappDeployId` from the URL automatically (the string between `/s/` and `/exec`).
 
-**c. Get Spreadsheet URL**
+**e. Get Spreadsheet URL**
 
 Ask the user: "What is the URL of the target spreadsheet?"
 
 Extract `spreadsheetId` from the URL automatically (the string after `/d/` and before the next `/`).
 
-**d. Create config file**
+**f. Create config file**
 
 Write `.gas-autopilot.json` to the project directory with all collected values:
 

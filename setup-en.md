@@ -2,17 +2,13 @@
 
 ## What this setup enables
 
-Install the **gas-autopilot** skill for Claude Code — an autonomous GAS development workflow that handles code → deploy → test → fix in a self-driving loop.
-
-This setup connects the following CLI tools so Claude Code can **develop, execute, and test GAS entirely from the terminal**.
+Install the **gas-autopilot** skill and the CLI tools it depends on. After this setup, Claude will handle project-specific configuration (GAS project linking, Web App deploy, etc.) automatically when you first invoke `/gas-autopilot`.
 
 | Tool | Role |
 |------|------|
 | **gas-autopilot** | Claude Code skill that orchestrates the entire workflow |
 | **clasp** | Push / pull / version management of GAS code |
 | **gws** | Read/write spreadsheets (test data injection & result verification) |
-| **gas-run.sh** | Automates push → Web App deploy update → function execution in one command |
-| **gas-auth.py** | Extended OAuth scope authentication for clasp / gas-run.sh |
 
 ---
 
@@ -108,7 +104,7 @@ At Step 5 of `gws auth setup`, you may be asked to manually create an OAuth clie
 3. Application type: **Desktop app**
 4. After creation, paste the **Client ID** and **Client Secret** into the `gws auth setup` prompt
 
-Also **download the JSON** (`client_secret_*.json`) — it will be used in Step 11 for `gas-auth.py`.
+Also **download the JSON** (`client_secret_*.json`) — it will be used in Step 6 for `gas-auth.py`.
 
 ## Step 4: Authenticate gws
 
@@ -142,83 +138,7 @@ clasp login
 
 A browser will open — authorize with your Google account. Authentication status is confirmed by whether `clasp push` succeeds (clasp 3.x has no `--status` option).
 
-## Step 6: Prepare GAS project
-
-```bash
-# Clone existing project
-clasp clone <scriptId>
-
-# Or create new (bound to spreadsheet)
-clasp create --type sheets --title "Project Name"
-```
-
-This creates `.clasp.json` and `appsscript.json`.
-
-## Step 7: Add oauthScopes to appsscript.json
-
-Using `SpreadsheetApp.openById()` via Web App requires explicit scopes. Add to `appsscript.json`:
-
-```json
-{
-  "timeZone": "Asia/Tokyo",
-  "dependencies": {},
-  "oauthScopes": [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/script.external_request"
-  ],
-  "exceptionLogging": "STACKDRIVER",
-  "runtimeVersion": "V8"
-}
-```
-
-**Note:** `getActiveSpreadsheet()` does not work via Web App (no bound context). **Always use `SpreadsheetApp.openById()`.**
-
-## Step 8: Add doGet handler
-
-Add the contents of [templates/doGet.js](templates/doGet.js) to your project's `.gs` file. List the functions you want to execute in `allowedFunctions`.
-
-Push to reflect on GAS side:
-
-```bash
-clasp push --force
-```
-
-## Step 9: Web App deploy (from GAS editor — first time only)
-
-1. Open GAS editor: `https://script.google.com/home/projects/<scriptId>/edit`
-2. **Deploy → New deployment**
-3. Type: **Web app**
-4. Execute as: **Me**
-5. Who has access: **Only myself**
-6. Click **Deploy**
-
-Note the **Web App URL** (the deployment ID is the string between `/s/` and `/exec` in the URL).
-
-**Note:** A scope authorization dialog will appear on first deploy. Allow it.
-
-## Step 10: Place gas-run.sh and create config
-
-Copy [templates/gas-run.sh](templates/gas-run.sh) to the project directory:
-
-```bash
-chmod +x gas-run.sh
-```
-
-gas-run.sh reads its configuration from `.gas-autopilot.json` in the same directory. This file is **automatically created by Claude** when you first invoke the `/gas-autopilot` skill. You can also create it manually:
-
-```json
-{
-  "scriptId": "<from .clasp.json>",
-  "webappUrl": "<Web App URL from Step 9>",
-  "webappDeployId": "<string between /s/ and /exec in the URL>",
-  "spreadsheetUrl": "<your spreadsheet URL>",
-  "spreadsheetId": "<extracted from spreadsheet URL>"
-}
-```
-
-Consider adding `.gas-autopilot.json` to `.gitignore`.
-
-## Step 11: OAuth authentication (extended scopes)
+## Step 6: OAuth authentication (extended scopes)
 
 clasp's default OAuth scopes don't include `spreadsheets`. Use [templates/gas-auth.py](templates/gas-auth.py) for extended scope authentication.
 
@@ -236,17 +156,11 @@ python3 gas-auth.py <path to client_secret_*.json downloaded in Step 3>
 
 A browser will open — authorize. On success, `~/.clasprc.json` is updated.
 
-## Step 12: Verify
-
-```bash
-./gas-run.sh deploy testConfig
-```
-
-If `{"ok": true, "function": "testConfig", "result": null}` is returned, the CLI tools are ready.
-
-## Step 13: Verify skill activation
+## Step 7: Verify skill activation
 
 Start a new Claude Code session and type `/gas-autopilot`. If the skill activates, setup is complete.
+
+When you invoke the skill for the first time in a GAS project, Claude will guide you through project-specific setup (cloning, Web App deploy, `.gas-autopilot.json` creation, etc.) automatically.
 
 ---
 
