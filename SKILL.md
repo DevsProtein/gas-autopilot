@@ -54,25 +54,51 @@ Check if `.clasp.json` exists in the project directory.
 
 Perform the following automatically or guide the user:
 
-1. Add `oauthScopes` to `appsscript.json` if not present:
+1. Add `oauthScopes` and `webapp` section to `appsscript.json` if not present:
    ```json
    "oauthScopes": [
      "https://www.googleapis.com/auth/spreadsheets",
      "https://www.googleapis.com/auth/script.external_request"
-   ]
+   ],
+   "webapp": {
+     "executeAs": "USER_DEPLOYING",
+     "access": "MYSELF"
+   }
    ```
 2. Add the doGet handler from `templates/doGet.js` to the project if not present.
 3. Run `clasp push --force`.
 4. Copy `templates/gas-run.sh` to the project directory and run `chmod +x gas-run.sh`.
 
-**d. Get Web App URL**
+**c. Auto-deploy Web App**
 
-Guide the user through the Web App deploy process (first time only — must be done from GAS editor):
+Run `./gas-run.sh setup` to automatically create the initial Web App deployment via Apps Script API.
 
-1. "Open GAS editor → Deploy → New deployment → Web app → Execute as: Me → Access: Only myself → Deploy."
-2. "Paste the Web App URL shown after deployment."
+The command outputs JSON to stdout with `scriptId`, `webappUrl`, and `webappDeployId`. Parse it and use these values for the config file.
 
-Extract `webappDeployId` from the URL automatically (the string between `/s/` and `/exec`).
+If the command fails, check:
+- Apps Script API is enabled in the GCP project
+- OAuth scopes are correct (re-run `gas-auth.py` if needed)
+- `appsscript.json` has the `webapp` section (added in step b)
+
+**d. Authorize Web App (first time only)**
+
+After the deploy, the user must open the `webappUrl` in a browser once to complete Google's OAuth consent.
+
+Tell the user:
+
+> Web App の初回認可が必要です。以下の URL をブラウザで開いてください。
+>
+> `<webappUrl>`
+>
+> **許可される内容:**
+> - **スプレッドシートの読み書き** — GAS 関数がスプレッドシートを操作するために必要
+> - **外部サービスへの接続** — GAS スクリプトが HTTP リクエストを送信するために必要
+>
+> **なぜ必要か:** gas-run.sh は Web App 経由で GAS 関数を実行します。Google はセキュリティ上、Web App の初回アクセス時にスクリプトが要求する権限への同意を求めます。この認可は1回のみで、以降は gas-run.sh から自動実行できます。
+>
+> **アクセス範囲:** 自分自身のアカウントのみ（第三者には公開されません）。
+
+After authorization, verify with `./gas-run.sh testConfig` (or any allowed function). If it returns JSON with `"ok": true`, the setup is complete.
 
 **e. Get Spreadsheet URL**
 
@@ -86,9 +112,9 @@ Write `.gas-autopilot.json` to the project directory with all collected values:
 
 ```json
 {
-  "scriptId": "<extracted>",
-  "webappUrl": "<user provided>",
-  "webappDeployId": "<extracted from URL>",
+  "scriptId": "<from setup output>",
+  "webappUrl": "<from setup output>",
+  "webappDeployId": "<from setup output>",
   "spreadsheetUrl": "<user provided>",
   "spreadsheetId": "<extracted from URL>"
 }
@@ -125,6 +151,10 @@ gws sheets spreadsheets values clear --params "{\"spreadsheetId\":\"<spreadsheet
 - テーブルの構造変更後、**旧範囲にはみ出た書式の残骸を必ずクリアする**
 
 詳細: [gws-reference.md](gws-reference.md)（コマンド詳細・Tips） / [gws-formatting.md](gws-formatting.md)（書式操作・シート管理）
+
+### Temporary files go in `temp/`
+
+When testing gws commands or creating temporary test files, use the `temp/` directory at the skill repository root. This directory is gitignored and safe for ephemeral artifacts.
 
 ### Never skip test execution
 
@@ -231,12 +261,13 @@ clasp deployments                  # List deployments
 ./gas-run.sh <functionName>        # Run function only
 ```
 
-**Note:** First Web App deploy must be done from GAS editor (once only). After that, `gas-run.sh deploy` auto-updates via Apps Script API.
+`gas-run.sh setup` handles the initial Web App deployment. After that, `gas-run.sh deploy` auto-updates via Apps Script API.
 
 ## Command Reference
 
 | Action | Command |
 |--------|---------|
+| Initial Web App deploy | `./gas-run.sh setup` |
 | Edit → deploy → run | `./gas-run.sh deploy <fn>` |
 | Deploy only | `./gas-run.sh deploy` |
 | Run with existing deploy | `./gas-run.sh <fn>` |

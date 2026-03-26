@@ -5,6 +5,7 @@
 #   ./gas-run.sh <functionName>        — Run a function
 #   ./gas-run.sh deploy                — push + create version + update Web App deploy
 #   ./gas-run.sh deploy <functionName> — deploy then run a function
+#   ./gas-run.sh setup                 — Initial Web App deploy (creates deployment via API)
 #
 # Config is read from .gas-autopilot.json in the same directory.
 # If the file doesn't exist, run the gas-autopilot skill setup first.
@@ -26,12 +27,15 @@ if [ -f "$CONFIG_FILE" ]; then
   SCRIPT_ID="${SCRIPT_ID:-$(python3 -c "import json; print(json.load(open('$CONFIG_FILE')).get('scriptId',''))" 2>/dev/null)}"
 fi
 
-if [ -z "$WEBAPP_URL" ] || [ -z "$WEBAPP_DEPLOY_ID" ] || [ -z "$SCRIPT_ID" ]; then
-  echo "Error: Missing configuration."
-  echo ""
-  echo "Expected .gas-autopilot.json at: $CONFIG_FILE"
-  echo "Run the gas-autopilot skill setup: type /gas-autopilot in Claude Code."
-  exit 1
+# setup command doesn't need existing config
+if [ "${1:-}" != "setup" ]; then
+  if [ -z "$WEBAPP_URL" ] || [ -z "$WEBAPP_DEPLOY_ID" ] || [ -z "$SCRIPT_ID" ]; then
+    echo "Error: Missing configuration."
+    echo ""
+    echo "Expected .gas-autopilot.json at: $CONFIG_FILE"
+    echo "Run the gas-autopilot skill setup: type /gas-autopilot in Claude Code."
+    exit 1
+  fi
 fi
 
 # --- Helper: Get access token ---
@@ -57,6 +61,96 @@ run_function() {
   local result
   result=$(curl -sL "${WEBAPP_URL}?fn=${fn}" -H "Authorization: Bearer ${token}")
   echo "$result" | python3 -m json.tool 2>/dev/null || echo "$result"
+}
+
+# --- Setup command: Initial Web App deployment ---
+do_setup() {
+  local clasp_json="$SCRIPT_DIR/.clasp.json"
+  if [ ! -f "$clasp_json" ]; then
+    echo "Error: .clasp.json not found at $SCRIPT_DIR" >&2
+    echo "Run 'clasp clone <scriptId>' first." >&2
+    exit 1
+  fi
+
+  local script_id
+  script_id=$(python3 -c "import json; print(json.load(open('$clasp_json'))['scriptId'])")
+
+  echo "=== clasp push --force ===" >&2
+  (cd "$SCRIPT_DIR" && clasp push --force) >&2
+
+  echo "" >&2
+  echo "=== clasp version ===" >&2
+  local version_output
+  version_output=$(cd "$SCRIPT_DIR" && clasp version "initial-setup $(date +%Y-%m-%d_%H:%M)")
+  local version_num
+  version_num=$(echo "$version_output" | grep -oE '[0-9]+' | head -1)
+  echo "$version_output" >&2
+
+  if [ -z "$version_num" ]; then
+    echo "Error: Could not get version number" >&2
+    exit 1
+  fi
+
+  echo "" >&2
+  echo "=== Creating Web App deployment ===" >&2
+  local token
+  token=$(get_token)
+
+  local api_url="https://script.googleapis.com/v1/projects/${script_id}/deployments"
+  local body="{\"versionNumber\":${version_num},\"manifestFileName\":\"appsscript\",\"description\":\"gas-autopilot Web App\"}"
+
+  local resp
+  resp=$(curl -s -X POST "$api_url" \
+    -H "Authorization: Bearer ${token}" \
+    -H "Content-Type: application/json" \
+    -d "$body")
+
+  # Extract deploymentId and webappUrl from API response
+  local deploy_id
+  deploy_id=$(echo "$resp" | python3 -c "import json,sys; print(json.load(sys.stdin).get('deploymentId',''))" 2>/dev/null)
+
+  if [ -z "$deploy_id" ]; then
+    echo "Error: Failed to create Web App deployment" >&2
+    echo "$resp" | python3 -m json.tool 2>/dev/null >&2 || echo "$resp" >&2
+    echo "" >&2
+    echo "Possible causes:" >&2
+    echo "  - Apps Script API not enabled in GCP project" >&2
+    echo "  - Missing OAuth scopes (re-run gas-auth.py)" >&2
+    echo "  - appsscript.json missing 'webapp' section" >&2
+    exit 1
+  fi
+
+  # Get the actual Web App URL from entryPoints (handles Workspace domains correctly)
+  local webapp_url
+  webapp_url=$(echo "$resp" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for ep in d.get('entryPoints', []):
+    if ep.get('entryPointType') == 'WEB_APP':
+        print(ep['webApp']['url'])
+        sys.exit(0)
+print('')
+" 2>/dev/null)
+
+  # Fallback: construct URL if entryPoints didn't have it
+  if [ -z "$webapp_url" ]; then
+    webapp_url="https://script.google.com/macros/s/${deploy_id}/exec"
+  fi
+
+  echo "Web App deployed: ${webapp_url}" >&2
+  echo "" >&2
+  echo "Next: Open the URL above in a browser to authorize (one-time only)." >&2
+  echo "This grants the script permission to access your spreadsheets." >&2
+
+  # Output JSON to stdout for parsing
+  python3 -c "
+import json
+print(json.dumps({
+    'scriptId': '$script_id',
+    'webappUrl': '$webapp_url',
+    'webappDeployId': '$deploy_id'
+}))
+"
 }
 
 # --- Deploy command ---
@@ -109,10 +203,14 @@ if [ -z "$CMD" ]; then
   echo "  $0 <functionName>        — Run a function"
   echo "  $0 deploy                — push + deploy"
   echo "  $0 deploy <functionName> — push + deploy + run function"
+  echo "  $0 setup                 — Initial Web App deploy (outputs JSON)"
   exit 1
 fi
 
-if [ "$CMD" = "deploy" ]; then
+if [ "$CMD" = "setup" ]; then
+  do_setup
+  exit 0
+elif [ "$CMD" = "deploy" ]; then
   deploy_output=$(do_deploy)
   token=$(echo "$deploy_output" | tail -1)
   echo "$deploy_output" | sed '$d'

@@ -170,7 +170,7 @@ When you invoke the skill for the first time in a GAS project, Claude will guide
 
 - `clasp open` is removed. Open GAS editor via URL directly
 - `clasp pull` may rename `.gs` to `.js`. Delete `.js` after pull and keep only `.gs`
-- `clasp deploy` creates a library deploy, not a Web App deploy. First Web App deploy must be done from GAS editor
+- `clasp deploy` creates a library deploy, not a Web App deploy. Use `./gas-run.sh setup` for initial Web App deployment via Apps Script API
 
 ### gws notes
 
