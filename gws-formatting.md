@@ -1,22 +1,22 @@
-# 書式操作・シート管理リファレンス
+# Formatting & Sheet Management Reference
 
-`values update` はデータのみ。書式の操作には `batchUpdate` を使う。
+`values update` handles data only. Use `batchUpdate` for formatting operations.
 
-## 重要ルール
+## Important Rules
 
-- 既存シートの表をコピーする際は、**必ず書式（配色・罫線・数値書式）もコピーする**
-- 新規に表を作成する場合、**ヘッダー行にスタイルを適用する**
-- テーブルの構造変更（列の追加/削除、範囲の縮小）を行った場合、**旧範囲にはみ出た書式の残骸を必ずクリアする**（`values clear` はデータのみで書式は残る。書式リセットには `batchUpdate` の `repeatCell` を使う）
+- When copying a table from an existing sheet, **always copy formatting (colors, borders, number formats) as well**
+- When creating a new table, **apply styles to the header row**
+- When modifying table structure (adding/removing columns, shrinking range), **always clear leftover formatting from the old range** (`values clear` only clears data, not formatting. Use `batchUpdate` with `repeatCell` to reset formatting)
 
-## シートの新規作成
+## Create New Sheet
 
 ```bash
 gws sheets spreadsheets batchUpdate \
   --params "{\"spreadsheetId\":\"ID\"}" \
-  --json "{\"requests\":[{\"addSheet\":{\"properties\":{\"title\":\"新シート名\"}}}]}"
+  --json "{\"requests\":[{\"addSheet\":{\"properties\":{\"title\":\"NewSheetName\"}}}]}"
 ```
 
-## 範囲の書式コピー（配色・罫線・数値書式を維持）
+## Copy Range Formatting (preserves colors, borders, number formats)
 
 ```bash
 gws sheets spreadsheets batchUpdate \
@@ -24,21 +24,21 @@ gws sheets spreadsheets batchUpdate \
   --json "{\"requests\":[{\"copyPaste\":{\"source\":{\"sheetId\":SRC_SHEET_ID,\"startRowIndex\":0,\"endRowIndex\":10,\"startColumnIndex\":0,\"endColumnIndex\":5},\"destination\":{\"sheetId\":DEST_SHEET_ID,\"startRowIndex\":0,\"endRowIndex\":10,\"startColumnIndex\":0,\"endColumnIndex\":5},\"pasteType\":\"PASTE_FORMAT\"}}]}"
 ```
 
-**pasteType の種類:**
+**pasteType options:**
 
-| pasteType | コピーされる内容 |
+| pasteType | What is copied |
 |-----------|---------------|
-| `PASTE_FORMAT` | 背景色・罫線・フォント・数値書式・配置 |
-| `PASTE_CONDITIONAL_FORMATTING` | 条件付き書式 |
-| `PASTE_NORMAL` | データ＋書式すべて |
-| `PASTE_VALUES` | 値のみ（数式は計算結果に変換） |
-| `PASTE_FORMULA` | 数式のみ |
-| `PASTE_NO_BORDERS` | 罫線以外の書式＋データ |
-| `PASTE_DATA_VALIDATION` | 入力規則のみ |
+| `PASTE_FORMAT` | Background color, borders, font, number format, alignment |
+| `PASTE_CONDITIONAL_FORMATTING` | Conditional formatting rules |
+| `PASTE_NORMAL` | All data + formatting |
+| `PASTE_VALUES` | Values only (formulas converted to results) |
+| `PASTE_FORMULA` | Formulas only |
+| `PASTE_NO_BORDERS` | Formatting (except borders) + data |
+| `PASTE_DATA_VALIDATION` | Data validation rules only |
 
-## 列幅のコピー
+## Copy Column Widths
 
-列幅は `PASTE_FORMAT` に含まれない。`updateDimensionProperties` で個別に設定する。
+Column widths are not included in `PASTE_FORMAT`. Set them individually with `updateDimensionProperties`.
 
 ```bash
 gws sheets spreadsheets batchUpdate \
@@ -46,49 +46,49 @@ gws sheets spreadsheets batchUpdate \
   --json "{\"requests\":[{\"updateDimensionProperties\":{\"range\":{\"sheetId\":SHEET_ID,\"dimension\":\"COLUMNS\",\"startIndex\":0,\"endIndex\":1},\"properties\":{\"pixelSize\":150},\"fields\":\"pixelSize\"}}]}"
 ```
 
-元シートの列幅は `get` で取得できる:
+Get column widths from the source sheet:
 ```bash
 gws sheets spreadsheets get \
   --params "{\"spreadsheetId\":\"ID\",\"fields\":\"sheets(properties(sheetId,title),data(columnMetadata(pixelSize)))\"}" 2>/dev/null
 ```
 
-## 表のコピー手順（まとめ）
+## Table Copy Procedure (Summary)
 
-既存シートの表を別シートにコピーする場合は、以下の順で実行する:
+When copying a table from an existing sheet to another, execute in this order:
 
-1. `addSheet` で新シートを作成
-2. `values update` でデータ・数式を書き込み（セル参照は行番号を調整）
-3. `copyPaste` + `PASTE_FORMAT` で書式をコピー
-4. `copyPaste` + `PASTE_CONDITIONAL_FORMATTING` で条件付き書式をコピー
-5. `updateDimensionProperties` で列幅を設定
+1. `addSheet` to create the new sheet
+2. `values update` to write data/formulas (adjust row references as needed)
+3. `copyPaste` + `PASTE_FORMAT` to copy formatting
+4. `copyPaste` + `PASTE_CONDITIONAL_FORMATTING` to copy conditional formatting
+5. `updateDimensionProperties` to set column widths
 
-## 書式リセット（データ＋書式の完全クリア）
+## Format Reset (full clear of data + formatting)
 
-`values clear` はデータのみクリアし、背景色・罫線・フォント等の書式は残る。
-テーブルの列削除や範囲縮小で不要になったセルは、書式もリセットすること。
+`values clear` only clears data — background colors, borders, fonts, etc. remain.
+Cells that become unnecessary after table column removal or range shrinking must have their formatting reset as well.
 
 ```bash
-# 書式をデフォルトに戻す（データはクリアされない）
+# Reset formatting to default (data is not cleared)
 gws sheets spreadsheets batchUpdate \
   --params "{\"spreadsheetId\":\"ID\"}" \
   --json "{\"requests\":[{\"repeatCell\":{\"range\":{\"sheetId\":SHEET_ID,\"startRowIndex\":START_ROW,\"endRowIndex\":END_ROW,\"startColumnIndex\":START_COL,\"endColumnIndex\":END_COL},\"cell\":{\"userEnteredFormat\":{}},\"fields\":\"userEnteredFormat\"}}]}"
 ```
 
-データと書式の両方をクリアする場合は、`values clear` → `repeatCell` を組み合わせる。
+To clear both data and formatting, combine `values clear` + `repeatCell`.
 
-**構造変更時のチェックリスト:**
+**Checklist for structural changes:**
 
-| 変更内容 | クリア対象 |
-|---------|----------|
-| 列を減らした | 旧テーブルの右端からはみ出た列（ヘッダー行 + データ行） |
-| 行を減らした | 旧テーブルの下端からはみ出た行 |
-| テーブルを移動した | 移動元の全範囲 |
+| Change | Area to clear |
+|--------|--------------|
+| Reduced columns | Columns beyond the old table's right edge (header + data rows) |
+| Reduced rows | Rows beyond the old table's bottom edge |
+| Moved table | Entire original range |
 
-**注意:** リセット対象は「不要になった範囲のみ」に限定する。テーブル内の書式まで消さないよう範囲を正確に指定すること。
+**Note:** Only reset the range that is no longer needed. Specify ranges precisely to avoid clearing formatting within the active table.
 
-## 新規テーブルのヘッダー行スタイリング
+## New Table Header Row Styling
 
-新規に表を作成する場合、ヘッダー行に以下のスタイルを適用する。
+When creating a new table, apply the following style to the header row.
 
 ```bash
 gws sheets spreadsheets batchUpdate \
@@ -96,13 +96,13 @@ gws sheets spreadsheets batchUpdate \
   --json "{\"requests\":[{\"repeatCell\":{\"range\":{\"sheetId\":SHEET_ID,\"startRowIndex\":HEADER_ROW,\"endRowIndex\":HEADER_ROW+1,\"startColumnIndex\":0,\"endColumnIndex\":COL_COUNT},\"cell\":{\"userEnteredFormat\":{\"backgroundColor\":{\"red\":0.25,\"green\":0.25,\"blue\":0.25},\"textFormat\":{\"bold\":true,\"fontFamily\":\"Meiryo\",\"fontSize\":9,\"foregroundColor\":{\"red\":1,\"green\":1,\"blue\":1}},\"horizontalAlignment\":\"CENTER\",\"verticalAlignment\":\"MIDDLE\",\"wrapStrategy\":\"WRAP\",\"borders\":{\"top\":{\"style\":\"SOLID\",\"width\":1},\"bottom\":{\"style\":\"SOLID\",\"width\":1},\"left\":{\"style\":\"SOLID\",\"width\":1},\"right\":{\"style\":\"SOLID\",\"width\":1}}}},\"fields\":\"userEnteredFormat\"}}]}"
 ```
 
-スタイル仕様:
+Style spec:
 
-| 項目 | 値 |
-|------|-----|
-| 背景色 | ダークグレー `rgb(0.25, 0.25, 0.25)` = `#404040` |
-| 文字色 | 白 `rgb(1, 1, 1)` |
-| フォント | Meiryo 9pt 太字 |
-| 配置 | 中央揃え・上下中央 |
-| 罫線 | 四辺実線 |
-| 折り返し | WRAP |
+| Property | Value |
+|----------|-------|
+| Background | Dark gray `rgb(0.25, 0.25, 0.25)` = `#404040` |
+| Text color | White `rgb(1, 1, 1)` |
+| Font | Meiryo 9pt bold |
+| Alignment | Center horizontal, middle vertical |
+| Borders | Solid on all sides |
+| Wrap | WRAP |

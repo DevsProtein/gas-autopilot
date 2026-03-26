@@ -1,11 +1,11 @@
-# gws コマンドリファレンス
+# gws Command Reference
 
-gws CLI を使ったスプレッドシート操作のリファレンス。
-`spreadsheetId` は `.gas-autopilot.json` から取得する。
+Reference for spreadsheet operations using the gws CLI.
+`spreadsheetId` is retrieved from `.gas-autopilot.json`.
 
-## 構文ルール
+## Syntax Rules
 
-**`--params` はシングルクォート JSON を受け付けない。ダブルクォートをエスケープして渡す。**
+**`--params` does not accept single-quoted JSON. Escape double quotes instead.**
 
 ```bash
 # NG
@@ -15,78 +15,78 @@ gws sheets spreadsheets values get --params '{"spreadsheetId":"ID","range":"Shee
 gws sheets spreadsheets values get --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1:E10\"}"
 ```
 
-## スプレッドシートの情報取得
+## Get Spreadsheet Info
 
 ```bash
 gws sheets spreadsheets get --params "{\"spreadsheetId\":\"ID\"}"
 ```
 
-## 読み取り
+## Read
 
 ```bash
-# 基本（JSON 出力）
+# Basic (JSON output)
 gws sheets spreadsheets values get \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1:E10\"}"
 
-# CSV 形式（grep やパイプで加工しやすい）
+# CSV format (convenient for grep and pipe processing)
 gws sheets spreadsheets values get \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1:E10\"}" \
   --format csv
 ```
 
-## 書き込み
+## Write
 
 ```bash
-# 単一セル
+# Single cell
 gws sheets spreadsheets values update \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1\",\"valueInputOption\":\"USER_ENTERED\"}" \
-  --json "{\"values\":[[\"値\"]]}"
+  --json "{\"values\":[[\"value\"]]}"
 
-# 複数セル（2x3 の例）
+# Multiple cells (2x3 example)
 gws sheets spreadsheets values update \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1:C2\",\"valueInputOption\":\"USER_ENTERED\"}" \
   --json "{\"values\":[[\"A1\",\"B1\",\"C1\"],[\"A2\",\"B2\",\"C2\"]]}"
 
-# 数値として書き込み（書式を適用しない）
+# Write as raw value (no format interpretation)
 gws sheets spreadsheets values update \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A1\",\"valueInputOption\":\"RAW\"}" \
   --json "{\"values\":[[12345]]}"
 ```
 
-## クリア
+## Clear
 
 ```bash
-# 範囲のデータをクリア（書式は残る）
+# Clear data in range (formatting is preserved)
 gws sheets spreadsheets values clear \
   --params "{\"spreadsheetId\":\"ID\",\"range\":\"Sheet1!A2:Z\"}"
 ```
 
 ## Tips
 
-### range の書き方
+### Range notation
 
-| 記法 | 意味 |
-|------|------|
-| `Sheet1!A1:E10` | A1 から E10 まで |
-| `Sheet1!A:A` | A列全体 |
-| `Sheet1!1:1` | 1行目全体 |
-| `Sheet1!A2:Z` | A2 から Z列の最終行まで |
-| `Sheet1` | シート全体 |
+| Notation | Meaning |
+|----------|---------|
+| `Sheet1!A1:E10` | From A1 to E10 |
+| `Sheet1!A:A` | Entire column A |
+| `Sheet1!1:1` | Entire row 1 |
+| `Sheet1!A2:Z` | From A2 to last row of column Z |
+| `Sheet1` | Entire sheet |
 
-シート名にスペースや記号が含まれる場合はシングルクォートで囲む: `'シート名'!A1:E10`
+Wrap sheet names containing spaces or special characters in single quotes: `'Sheet Name'!A1:E10`
 
 ### valueInputOption
 
-| オプション | 説明 |
-|-----------|------|
-| `USER_ENTERED` | ユーザーが入力したように解釈される（数式・日付を認識） |
-| `RAW` | 入力値をそのまま保存（文字列として扱う） |
+| Option | Description |
+|--------|-------------|
+| `USER_ENTERED` | Interpreted as if typed by a user (recognizes formulas and dates) |
+| `RAW` | Stored as-is (treated as string) |
 
-### --format オプション
+### --format option
 
-| フォーマット | 用途 |
-|------------|------|
-| `json` | デフォルト。構造化データとして扱う場合 |
-| `csv` | grep / awk / パイプ処理に便利 |
-| `table` | 人間が読みやすいテーブル表示 |
-| `yaml` | YAML 形式 |
+| Format | Use case |
+|--------|----------|
+| `json` | Default. For structured data processing |
+| `csv` | Convenient for grep / awk / pipe processing |
+| `table` | Human-readable table display |
+| `yaml` | YAML format |

@@ -86,17 +86,17 @@ After the deploy, the user must open the `webappUrl` in a browser once to comple
 
 Tell the user:
 
-> Web App の初回認可が必要です。以下の URL をブラウザで開いてください。
+> First-time authorization is required for the Web App. Please open the following URL in your browser:
 >
 > `<webappUrl>`
 >
-> **許可される内容:**
-> - **スプレッドシートの読み書き** — GAS 関数がスプレッドシートを操作するために必要
-> - **外部サービスへの接続** — GAS スクリプトが HTTP リクエストを送信するために必要
+> **Permissions granted:**
+> - **Read/write spreadsheets** — Required for GAS functions to operate on spreadsheets
+> - **Connect to external services** — Required for GAS scripts to make HTTP requests
 >
-> **なぜ必要か:** gas-run.sh は Web App 経由で GAS 関数を実行します。Google はセキュリティ上、Web App の初回アクセス時にスクリプトが要求する権限への同意を求めます。この認可は1回のみで、以降は gas-run.sh から自動実行できます。
+> **Why this is needed:** gas-run.sh executes GAS functions via the Web App. For security, Google requires consent to the script's requested permissions on first access. This authorization is one-time only — after that, gas-run.sh can execute functions automatically.
 >
-> **アクセス範囲:** 自分自身のアカウントのみ（第三者には公開されません）。
+> **Access scope:** Your own account only (not exposed to third parties).
 
 After authorization, verify with `./gas-run.sh testConfig` (or any allowed function). If it returns JSON with `"ok": true`, the setup is complete.
 
@@ -130,7 +130,7 @@ Test data injection, cell updates, data verification — **all spreadsheet opera
 
 When running gws commands, use the `spreadsheetId` from `.gas-autopilot.json`.
 
-**構文ルール:** `--params` はシングルクォート JSON を受け付けない。ダブルクォートをエスケープして渡す。
+**Syntax rule:** `--params` does not accept single-quoted JSON. Escape double quotes instead.
 
 ```bash
 # Read
@@ -145,12 +145,12 @@ gws sheets spreadsheets values update \
 gws sheets spreadsheets values clear --params "{\"spreadsheetId\":\"<spreadsheetId>\", \"range\":\"Sheet1!A2:Z\"}"
 ```
 
-**書式操作の重要ルール:**
-- 既存シートの表をコピーする際は、**必ず書式（配色・罫線・数値書式）もコピーする**
-- 新規に表を作成する場合、**ヘッダー行にスタイルを適用する**
-- テーブルの構造変更後、**旧範囲にはみ出た書式の残骸を必ずクリアする**
+**Important formatting rules:**
+- When copying a table from an existing sheet, **always copy formatting (colors, borders, number formats) as well**
+- When creating a new table, **apply styles to the header row**
+- After structural changes to a table, **always clear leftover formatting from the old range**
 
-詳細: [gws-reference.md](gws-reference.md)（コマンド詳細・Tips） / [gws-formatting.md](gws-formatting.md)（書式操作・シート管理）
+Details: [gws-reference.md](gws-reference.md) (command reference & tips) / [gws-formatting.md](gws-formatting.md) (formatting & sheet management)
 
 ### Temporary files go in `temp/`
 
