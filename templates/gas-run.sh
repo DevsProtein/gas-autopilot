@@ -7,14 +7,17 @@
 #   ./gas-run.sh deploy <functionName> — deploy then run a function
 #   ./gas-run.sh setup                 — Initial Web App deploy (creates deployment via API)
 #
+# Env: GAS_DEPLOY_WAIT — seconds to wait after deploy before running (default 5)
+#
 # Config is read from .gas-autopilot.json in the same directory.
 # If the file doesn't exist, run the gas-autopilot skill setup first.
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# pwd -W: on Windows Git Bash, yield D:/... paths that Windows Python can open
+SCRIPT_DIR="$(cd "$(dirname "$0")" && (pwd -W 2>/dev/null || pwd))"
 CONFIG_FILE="$SCRIPT_DIR/.gas-autopilot.json"
-CLASPRC="$HOME/.clasprc.json"
+CLASPRC="$(cd "$HOME" && (pwd -W 2>/dev/null || pwd))/.clasprc.json"
 
 # --- Load config from .gas-autopilot.json ---
 WEBAPP_URL="${WEBAPP_URL:-}"
@@ -60,7 +63,7 @@ run_function() {
   local token="$2"
   local result
   result=$(curl -sL "${WEBAPP_URL}?fn=${fn}" -H "Authorization: Bearer ${token}")
-  echo "$result" | python3 -m json.tool 2>/dev/null || echo "$result"
+  echo "$result" | python3 -X utf8 -m json.tool 2>/dev/null || echo "$result"
 }
 
 # --- Setup command: Initial Web App deployment ---
@@ -111,7 +114,7 @@ do_setup() {
 
   if [ -z "$deploy_id" ]; then
     echo "Error: Failed to create Web App deployment" >&2
-    echo "$resp" | python3 -m json.tool 2>/dev/null >&2 || echo "$resp" >&2
+    echo "$resp" | python3 -X utf8 -m json.tool 2>/dev/null >&2 || echo "$resp" >&2
     echo "" >&2
     echo "Possible causes:" >&2
     echo "  - Apps Script API not enabled in GCP project" >&2
@@ -189,7 +192,7 @@ do_deploy() {
     echo "Deploy updated: v${version_num}"
   else
     echo "Error: Deploy update failed"
-    echo "$resp" | python3 -m json.tool 2>/dev/null || echo "$resp"
+    echo "$resp" | python3 -X utf8 -m json.tool 2>/dev/null || echo "$resp"
     exit 1
   fi
 
@@ -217,6 +220,8 @@ elif [ "$CMD" = "deploy" ]; then
 
   FN="${2:-}"
   if [ -n "$FN" ]; then
+    # Web App may serve the previous version for a few seconds after an update
+    sleep "${GAS_DEPLOY_WAIT:-5}"
     echo ""
     echo "=== Running ${FN} ==="
     run_function "$FN" "$token"
